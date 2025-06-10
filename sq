@@ -1,0 +1,7 @@
+SELECT COUNT(*) FROM langchain_pg_embedding;
+SELECT COUNT(*) FROM langchain_pg_collection;
+
+curl -X POST "http://localhost:8000/load-hf?dataset=cerebras/SlimPajama-627B&split=train[:5%]"
+curl -X POST "http://localhost:8000/load-data?dataset=my_dataset"
+curl "http://localhost:8000/ask?question=r20+paper+imp+of+cse+computerorganisation+questions&dataset=my_dataset"
+curl -X POST "http://localhost:8000/load-hf?dataset=allenai/c4&config=en&split=train%5B%3A5%25%5D"

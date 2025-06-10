@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+langchain
+langchain-community
+pgvector
+psycopg2-binary
+requests
+pydantic
+python-dotenv
+transformers
+torch
+accelerate
+sentencepiece  # Needed for some models like TinyLlama
+bitsandbytes    # Optional: For quantization
