@@ -89,20 +89,42 @@ def load_documents_from_folder(folder_path: str, dataset_tag: str = "default") -
 
 
 def load_hf_dataset(dataset_name: str, split: str = "train[:5%]", config: str = None, dataset_tag: str = "hf_data"):
-    """
-    Loads datasets from HuggingFace Hub.
-    """
-    ds = load_dataset(dataset_name, config, split=split)
+    from datasets import load_dataset, load_dataset_builder
+
+    logger.info(f"[HF LOADER] Loading dataset: {dataset_name}, Config: {config}, Attempting split: {split}")
+
+    # Get available splits
+    builder = load_dataset_builder(dataset_name, config)
+    available_splits = list(builder.info.splits.keys())
+    logger.info(f"[HF LOADER] Available splits: {available_splits}")
+
+    # Normalize split input
+    requested_split = split.split("]")[0].split("[")[0]  # Extract base split name
+    if requested_split not in available_splits:
+        fallback_split = available_splits[0]
+        logger.warning(f"[HF LOADER] Split '{requested_split}' not found. Using fallback: '{fallback_split}'")
+        split = split.replace(requested_split, fallback_split, 1)
+
+    try:
+        ds = load_dataset(dataset_name, config, split=split)
+    except Exception as e:
+        logger.error(f"[HF LOADER] Failed to load dataset: {e}")
+        raise ValueError(f"Failed to load dataset '{dataset_name}' with config '{config}'") from e
 
     docs = []
-    logger.info(f"[HF LOADER] Loading dataset: {dataset_name}, Config: {config}, Split: {split}")
-
     for i, item in enumerate(ds):
-        text = item.get("text", "") or f"{item.get('question', '')}\n{item.get('answer', '')}"
+        text = (
+            item.get("text", "") or
+            item.get("answer", "") or
+            item.get("question", "") or
+            item.get("input", "") or
+            item.get("content", "") or
+            str(item)
+        )
         if text.strip():
             doc = Document(
                 page_content=text,
-                metadata={"source": item.get("id", f"item_{i}"), "dataset": dataset_tag}
+                metadata={"source": item.get("id", f"{dataset_name}:{i}"), "dataset": dataset_tag}
             )
             docs.append(doc)
 
