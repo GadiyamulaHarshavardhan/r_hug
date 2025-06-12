@@ -46,28 +46,45 @@ def load_data(dataset: str = "default"):
 @app.get("/ask")
 def ask(
     question: str = Query(...),
-    dataset: str = Query(None)
+    dataset: str = Query(None),
+    web_search: bool = False
 ):
-    # Wrap dataset in dict for LangChain filter compatibility
     dataset_filter = {"dataset": dataset} if dataset else None
-    answer = query_rag(question, vectorstore, dataset_filter=dataset_filter)
+    answer = query_rag(
+        question,
+        vectorstore,
+        dataset_filter=dataset_filter,
+        use_web_search=web_search
+    )
     return {
         "question": question,
         "answer": answer,
-        "dataset_used": dataset or "all"
+        "dataset_used": dataset or "all",
+        "web_search_used": web_search
     }
 
 @app.post("/load-hf")
 def load_hf(
-    dataset: str = "allenai/c4",
-    config: str = "en",              # <-- New parameter
-    split: str = "train[:5%]",
+    dataset: str = "UrbanSyn/UrbanSyn",
+    config: str = None,              # Optional config
+    split: str = "train[:1%]",       # Default small split for testing
 ):
+    """
+    Load any Hugging Face dataset into the RAG system.
+    
+    Args:
+        dataset: Dataset name on Hugging Face (e.g., 'Med-dataset/Med_Dataset')
+        config: Optional config name (e.g., 'en' for allenai/c4)
+        split: Data split to load (e.g., 'train[:5%]')
+    """
     docs = load_hf_dataset(dataset, config=config, split=split, dataset_tag="hf_dataset")
     chunks = chunk_documents(docs)
     store_chunks(chunks, vectorstore)
     return {
         "status": "Success",
+        "dataset": dataset,
+        "config": config,
+        "split": split,
         "docs_loaded": len(docs),
         "chunks_created": len(chunks),
         "dataset_tag": "hf_dataset"
